@@ -2,8 +2,13 @@ name: Build and Deploy
 on: [push]
 permissions:
   contents: write
+env:
+  AZURE_WEBAPP_NAME: demo-tutorial # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: "./server" # set this to the path to your web app project, defaults to the repository root
+  NODE_VERSION: "18.x" # set this to the node version to use
 jobs:
   build-and-deploy:
+    name: Build and Deploy Web
     concurrency: ci-${{ github.ref }} # Recommended if you intend to make multiple deployments in quick succession.
     runs-on: ubuntu-latest
     steps:
@@ -20,3 +25,25 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: web/build # The folder the action should deploy.
+  build-and-deploy-server:
+    name: Build and Deploy Server
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@master
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: npm install, build, and test
+        run: |
+          # Build and test the project, then
+          # deploy to Azure Web App.
+          cd server
+          npm install
+      - name: "Deploy to Azure WebApp"
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
